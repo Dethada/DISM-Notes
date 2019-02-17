@@ -19,7 +19,7 @@ Place log4j2.xml in the src folder.
 </Configuration>
 ```
 
-```java
+```jsp
 <%@ page import="org.apache.logging.log4j.Logger" %>
 <%@ page import="org.apache.logging.log4j.LogManager" %>
 <%!  Logger logger = LogManager.getRootLogger(); %>
@@ -98,7 +98,7 @@ while (rs.next()) {
 ```
 
 ## XSS Prevention
-```java
+```jsp
 <%@page import="org.apache.commons.lang3.StringEscapeUtils"%>
 StringEscapeUtils.escapeHtml4(search);
 ```
@@ -167,14 +167,18 @@ web.xml
    
 </session-config>
 ```
-
+Create new session for the user
 ```java
-session.invalidate();
+HttpSession session = request.getSession(false); // get session without creating a new one
+if (session != null) {
+    session.invalidate();
+}
+session = request.getSession();
 ```
 
 ## CSRF Prevention
 Login
-```java
+```jsp
 <%@ page import="common.hasher, common.login"%>
 <%@ page import="java.security.MessageDigest" %>
 <%@ page import="java.nio.charset.StandardCharsets" %>
