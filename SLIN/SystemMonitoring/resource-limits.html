@@ -1,0 +1,525 @@
+<!-- ftp://ftp.slackware.pl/pub/people/grzech/pam/doc/resource-limits.html -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-2"><title>Linux Security: User Resource Limits</title>
+
+<style type="text/css">
+        <!--
+        BODY, TH, TD, OL, UL, LI { font-family: verdana, arial, helvetica, sans-serif; font-size: small; }
+        H1 { font-size: 175%; font-family: verdana, arial, helvetica, sans-serif; }
+        H2 { font-size: 150%; font-family: verdana, arial, helvetica, sans-serif; } 
+        H3 { font-size: 125%; font-family: verdana, arial, helvetica, sans-serif; }
+        H4 { font-size: 100%; font-family: verdana, arial, helvetica, sans-serif; } 
+        H5 { font-size: 75%; font-family: verdana, arial, helvetica, sans-serif; }
+        H6 { font-size: 50%; font-family: verdana, arial, helvetica, sans-serif; }
+	CODE { font-family: courier; }
+	.medium { font-family: verdana, arial, helvetica, sans-serif; font-size: medium; }
+	.xsmall { font-family: verdana, arial, helvetica, sans-serif; font-size: x-small; }
+	-->
+</style></head>
+
+
+<body bgcolor="#ffffff">
+
+<table width="100%" cellspacing="0" cellpadding="1" border="0">
+    <tbody><tr>
+  		<td width="100%" bgcolor="#000080">
+			<table width="100%" cellspacing="1" cellpadding="6" border="0">
+	            <tbody><tr>
+	            	<td width="100%" bgcolor="#ffffff">
+					<table width="100%" cellspacing="0" cellpadding="1" border="0">
+	                    <tbody><tr>
+	                       <td width="100%" bgcolor="#008080">
+				<table width="100%" cellspacing="0" cellpadding="3" border="0">
+                            <tbody><tr>
+                                <td width="21%" bgcolor="#008080"><div class="medium"><b>dfdtech.net</b></div></td>
+                                <td width="3%" bgcolor="#ffffff">&nbsp;</td>
+                                <td width="11%" bgcolor="#ffffff"><a href="http://www.dfdtech.net/about/">About</a></td>
+                                <td width="11%" bgcolor="#c0c0c0"><b><a href="http://www.dfdtech.net/linux/">Linux</a></b></td>
+                                <td width="12%" bgcolor="#ffffff"><a href="http://www.dfdtech.net/irc/">IRC</a></td>
+                                <td width="12%" bgcolor="#ffffff"><a href="http://www.dfdtech.net/projects/">Projects</a></td>
+                                <td width="13%" bgcolor="#ffffff"><a href="http://www.dfdtech.net/personal/">Personal</a></td>
+                                <td width="10%" bgcolor="#ffffff">Search</td>
+				<td width="6%" bgcolor="#ffffff"><a href="http://www.dfdtech.net/">Home</a></td>
+
+                            </tr>
+                        	<!-- Second level of navigation -->
+
+			    <tr>
+				<td width="21%" bgcolor="#008080">&nbsp;</td>
+			        <td width="3%" bgcolor="#ffffff">&nbsp;</td>
+				<td width="11%" bgcolor="#c0c0c0"><a href="http://www.dfdtech.net/linux/security/">Security</a></td>
+				<td width="11%" bgcolor="#c0c0c0">&nbsp;</td>
+				<td width="12%" bgcolor="#c0c0c0">&nbsp;</td>
+				<td width="12%" bgcolor="#c0c0c0">&nbsp;</td>
+				<td width="13%" bgcolor="#c0c0c0">&nbsp;</td>
+				<td colspan="2" width="16%" bgcolor="#c0c0c0">&nbsp;</td>
+		    	    </tr>
+
+
+			</tbody></table>
+ 	                       </td>
+ 	                   </tr>
+ 	                   <tr>
+ 							<td colspan="8" width="100%">&nbsp;
+							<table width="100%" cellspacing="0" cellpadding="1" border="0">
+                            <tbody><tr>
+                                <td width="100%" bgcolor="#c0c0c0">
+				<table width="100%" cellspacing="0" cellpadding="3" border="0">
+                                    <tbody><tr>
+                                        <td width="100%" bgcolor="#fffaf0">
+					<h1>User Resource Limits</h1>
+
+<ul>
+	<li><a href="#what">What are user resource limits?</a></li>
+	<li><a href="#why">Why are user resource limits important?</a></li>
+	<li><a href="#attacks">Examples of Attacks</a>
+		<ul>
+		<li><a href="#attackfork">Fork Bombs</a></li>
+		<li><a href="#attackmem">Memory Usage Attack</a></li>
+		</ul>
+	</li>
+	<li><a href="#set">Setting user resource limits</a>
+		<ul>
+		<li><a href="#setshell">Setting limits via the shell</a></li>
+		<li><a href="#setpam">Setting limits via PAM modules</a></li>
+		</ul>
+	</li>
+	<li><a href="#examples">Real-World Usage Examples</a>
+		<ul>
+		<li><a href="#example1">Example using limits set by the shell</a></li>
+		<li><a href="#example2">Example using limits set by PAM</a></li>
+		</ul>
+	</li>
+	<li><a href="#limitations">Limitations of current implementation</a></li>
+	<li><a href="#conclusion">Conclusion</a></li>
+</ul>
+
+
+
+<h2><a name="what">What are user resource limits?</a></h2>
+
+<p>User resource limits dictate the amount of resources that can be
+used
+for a particular session.  The resources that can be controled are:</p>
+
+<ul>
+	<li>maximum size of <i>core</i> files</li>
+	<li>maximum size of a process's data segment</li>
+	<li>maximum size of files created</li>
+	<li>maximum size that may be locked into memory</li>
+	<li>maximum size of resident memory</li>
+	<li>maximum number of file descriptors open at one time</li>
+	<li>maximum size of the stack</li>
+	<li>maximum amount of cpu time used</li>
+	<li>maximum number of processes allowed</li>
+	<li>maximum size of virtual memory available</li>
+</ul>
+<p>It is important to note that these settings are <b>per-session</b>.  This
+means that they are only effective for the time that the user is logged in
+(and for any processes that they run during that period).  They are not global
+settings.  In other words, they are only active for the duration of the session
+and the settings are not cumulative.  For example, if you set the maximum
+number of processes to 11, the user may only have 11 processes running per
+session.  They are not limited to 11 total  processes on the machine as they
+may initiate another session.  Each of the settings are per process settings
+during the session, with the exception of the maximum number of processes.</p>
+
+<p>There are two types of limits that can be set for each property listed
+above, a hard and soft limit.  A hard limit cannot be changed by the user
+once it is set.  A soft limit, however, can be changed by the user but cannot
+exceed the hard limit.</p>
+
+
+<h2><a name="why">Why are user resource limits important?</a></h2>
+
+<p>User resource limits are important to the security and stability of a
+machine.  If the machine that you wish to secure allows untrusted users to
+run programs, then there is risk for abuse.  Abuse is not limited to users
+that have telnet shell access.  If you allow users to run CGI scripts on
+your web-server, these are also untrusted programs.  Your system can be abused
+just as easily from CGI scripts.  The potential exists for a malicious user
+to run a program that would eat up resources on the machine and make it unstable
+or completely unusable for all the other users.  This type of Denial  of
+Service (DoS) Attack is preventable with appropriate resource limits.  It
+is also possible that a well intentioned user who may make a simple programming
+error which could cause their program to use unncessary amounts of system
+resources.  Both of these situations can be prevented by the proper implementation
+of resource limits.  This is necessary for the stability of any Linux machine.</p>
+
+<h2><a name="attacks">Examples of Attacks</a></h2>
+
+<p>Before we look at how to configure user resource limits, it is
+important to also look at two sample types of attacks that use up
+resources.  These are simple example C programs that illustrate why
+resource limits are so important.  They are provided here for
+educational purposes only, do not run them on a machine unless you have
+explicit permission to do so.  These are only two examples that I could
+think of off the top of my head, there are probably many many more
+types of resorce usage attacks.  You can fend off the damage from these by proper resource limitations.</p>
+
+<h3><a name="attackfork">Fork Bombs</a></h3>
+
+<p>The following C program, as simple as it is, has the potential to
+bring a machine to it's knees without proper user resource limits. </p>
+
+<pre><code>
+int main()
+{
+	while(1)
+		fork();
+	return 0;
+}
+</code>
+</pre>
+
+<p>This program runs an infinite loop calling the <code>fork()</code> function.
+ Fork creates a child process that is virtually identical to the parent.
+ In other words, it creates another instance of the program .  As you can
+see, unrestrained this would create an incredible number of processes and
+as a result the system will eventually lock up and become unstable.  If you
+are fortunate enough to catch someone doing this before it gets too bad,
+you might be able to kill some of the processes.  However, this is not a
+viable solution to the problem.</p>
+
+<p>Here is where user resource limits come in.  It is possible to limit the
+number of processes that a user can launch in a single session.  In other
+words, the user who has telnetted in and runs this program can be limited
+to the number of times the fork program can create child processes.  While
+their program will still raise the system's load, a proper limit on processes
+will stop this from going out of control.</p>
+
+<h3><a name="attackmem">Memory Usage Attack</a></h3>
+
+<p>It is also possible that a malicious user may attack your system by using
+all the available RAM.  This can also happen by a rogue process that does
+not properly manage its RAM.  The following is an example of a program that's
+only purpose is to allocate as much RAM as possible and never return it for
+use:</p>
+
+<code><pre>int main()
+{
+
+        char *p;
+        while(1)
+                p = (char *)malloc(sizeof(char) * 4096);
+	return 0;
+}
+</pre></code>
+
+<p>Without any resource limits, this program will continue to allocate RAM
+until there is no more RAM or swap space available.  This may take a while
+depending on the size of RAM and swap available, but it will eventually render
+the system useless and require a reboot.</p>
+
+<h2><a name="set">Setting user resource limits</a></h2>
+
+<p>There are two main methods of implementing user resource limits on a
+Linux machine.  One involves using the properties of the login shell to
+set these limits, the other uses <a href="http://www.kernel.org/pub/linux/libs/pam/">PAM (Pluggable
+Authentication Modules)</a>.  Each have some advantages but in general
+they accomplish the same goal: to limit the abuse that can occur on a
+machine.</p>
+
+<h3><a name="setshell">Setting limits via the shell</a></h3>
+<p>Most login shells provide a method of setting user resource limits.  A login shell is a program such as <i>bash</i>
+that provides an interface to the user when they log into the machine via
+telnet.  The major advantages to using this method of setting resource limits
+is that all Linux machines have login shells such as bash.  The primary disadvantage
+is that the limits will only apply to users that have shell access to the
+server and will only apply to programs ran from the shell.</p>
+
+<p>For our purposes, we will focus on the <i>bash</i> login shell.  These same principles can be applied to <i>tcsh</i> and other shells.  Consult the documentation for your respective shell to determine how to set resource limits.</p>
+
+<p><i>Bash</i> has a built-in command called <code>ulimit</code> that enables the user to set resource limits.  Burried deep in the <i>bash</i> manpage, it is documented as follows:
+
+</p><blockquote>
+<pre>ulimit [-SHacdflmnpstuv [limit]]
+
+Provides control over the resources  available  to  the
+shell  and  to processes started by it, on systems that
+allow such control.  The value of limit can be a number
+in  the  unit  specified for the resource, or the value
+unlimited.  The -H and -S options specify that the hard
+or  soft  limit  is set for the given resource.  A hard
+limit cannot be increased once it is set; a soft  limit
+may be increased up to the value of the hard limit.  If
+neither -H nor -S is specified, both the soft and  hard
+limits are set.  If limit is omitted, the current value
+of the soft limit of the resource  is  printed,  unless
+the -H option is given.  When more than one resource is
+specified, the limit name and unit are  printed  before
+the value.  Other options are interpreted as follows:
+
+-a   All current limits are reported
+-c   The maximum size of core files created
+-d   The maximum size of a process's data segment
+-f   The maximum size of files created by the shell
+-l   The maximum size that may be locked into memory
+-m   The maximum resident set size
+-n   The maximum number of open file descriptors  (most
+     systems do not allow this value to be set)
+-p   The pipe size in 512-byte blocks (this may not  be
+     set)
+-s   The maximum stack size
+-t   The maximum amount of cpu time in seconds
+-u   The maximum number of  processes  available  to  a
+     single user
+-v   The maximum amount of virtual memory available  to
+     the shell
+
+If limit is given, it is the new value of the specified
+resource (the -a option is display only).  If no option
+is given, then -f is assumed.  Values are in  1024-byte
+increments,  except  for  -t,  which is in seconds, -p,
+which is in units of 512-byte blocks, and  -n  and  -u,
+which  are  unscaled  values.   The  return status is 0
+unless an invalid option is encountered, a  non-numeric
+argument  other than unlimited is supplied as limit, or
+an error occurs while setting a new limit.
+</pre>
+</blockquote>
+
+<p>As you can see, it is fairly straighforward to use the
+<code>ulimit</code> command.  However, the question still remains as to
+how we enforce these commands every time a user logs in to the shell.
+Fortunately, the contents of <code>/etc/profile</code> are executed
+every time <i>bash</i> is launched as a login shell.  It is then
+possible to place a series of <code>ulimit</code> commands to set a
+hard limit on various resources.</p>
+
+<h3><a name="setpam">Setting limits via PAM modules</a></h3>
+
+<p>If you have a system that uses <a href="http://www.kernel.org/pub/linux/libs/pam/">PAM (Pluggable Authentication Modules)</a> for authentication, you have another option  for user resource limits.  PAM comes with a resource limits module that is <a href="http://www.kernel.org/pub/linux/libs/pam/Linux-PAM-html/pam-6.html#ss6.12">well documented here</a>.</p>
+
+<p>Authentication with PAM for various different applications are controled by the files located in <code>/etc/pam.d</code>.  To set limits for users that login via telnet, you need to first edit <code>/etc/pam.d/login</code> and add the following line at the end of the series of lines that begin with <i>session</i>:
+</p><p>
+<code></code></p><pre><code>session  required       /lib/security/pam_limits.so
+</code></pre>
+<p></p>
+
+<p>It is possible that this line may allready be there depending on what
+distribution you are using, you should not add it again if it is allready
+there.</p>
+
+<p>The limits are then managed by editing the <code>/etc/security/limits.conf</code> file.  See the  <a href="http://www.kernel.org/pub/linux/libs/pam/Linux-PAM-html/pam-6.html#ss6.12">documentation</a> for the format of  this file.</p>
+
+<p>The major advantages of using PAM for resource limits is that different
+users can easily be assigned different limits as well as users that are a
+memeber of a group.  PAM also allows you to limit the priority (see <code>man nice</code>
+for more information) that the processes will be assigned and to determine
+the maximum number of logins (to prevent the user from logging in many times
+to attempt to avoid the process limitations). </p><h2><a name="examples">Real-World Usage Examples</a></h2>
+
+<p>So far we have covered the theory behind user limits and how they
+can
+be implemented.  What documentation generally lacks are examples from
+real-world scenarios.  Hopefully the following examples will prove to
+be useful.</p>
+
+<h3><a name="example1">Example using limits set by the shell</a></h3>
+
+<p>We have a machine that many untrusted users are allowed access to.  The
+resources of the system need to be preserved and we choose the method of
+using user limits imposed by the shell.</p>
+
+<p>We want to limit all users except the user <i>root</i>.  We only want
+to allow a maximum of 40 open files per process, a maximum resident set size
+of 16384 Kbytes (16MB), maximum data segment of 16384 Kbytes (16MB), a maximum
+stack size of 8192 Kbytes (8MB), and a maximum core size of 16384 Kbytes
+(16MB).</p>
+
+<p>To accomplish this, we can place the following in the <code>/etc/profile</code> file.</p>
+
+<code><pre>if [ "$USER" != "root" ]; then
+        ulimit -n 40 -u 16 -m 16384 -d 16384 -s 8192 -c 16384
+fi
+</pre></code>
+
+<p>Now when all users except root log in, they will have the resource limits
+described above set for their session.  The hard and soft limit will be set
+to the same number for each of the types that appear in the preceeding <code>ulimit</code>
+code.  These limits will stay no matter what programs they run in that session.
+ You can verify that the limits are set by checking typing <code>ulimit -a</code> in the shell.</p>
+
+<p>The actual values that you choose to limit will vary.  The above limits
+are being used successfully on a machine that has many untrusted users that
+are allowed to run programs.  It may be more appropriate to choose lower
+resource limits (especially those regarding memory usage) depending on the
+hardware you have.  You can always raise the limits by editing the <code>/etc/profile</code> file if you find that the limits are too restrictive or not restrictive enough.</p>
+
+
+<h3><a name="example2">Example using limits set by PAM</a></h3>
+
+<p>As we said before, PAM enables us to excercise a greater deal of flexibility
+over who the resource limits apply to.  In this example, we have users classified
+into three groups: <i>trusted</i>, <i>limtrst</i>, and <i>notrust</i>.  Users in the <i>trusted</i>
+group are generally expected to be trusted users that don't run programs
+that could use more resources than needed and so the resource limits on those
+users do not need to be very strict.  Users in the <i>limtrst</i> are generally trusted but could be running programs that might accidentally use too many resources.  Users in the <i>notrust</i>
+group are the least trusted, and will have very tight restrictions on what
+resources they can use.  We expect that if there was to be a resources attack,
+it would come from the users in the <i>notrust</i> group</p>
+
+<p>First, we have edited the <code>/etc/pam.d/login</code> and <code>/etc/pam.d/sshd</code> files and added the limits module <a href="#setpam">as described here</a>.  This will make sure that both telnet and ssh connections are resource limited.  We also may wish to do this for the <code>/etc/pam.d/ftpd</code> to limit ftpd resource usage as well.</p>
+
+<p>Now we must decide what resourece limits to impose on each group.  The
+following are generally arbitrary numbers.  The numbers you should use would
+be based on the amount of memory you have.  I have found it to be more of
+a trial and error to determine what limits are too restrictive or need to
+be more restrictive.</p>
+<ul>
+	<li>Group <i>trusted</i></li>
+	<ul>
+		<li>maximum size of core files: 10MB</li>
+		<li>maximum size of a process's data segment: no limit</li>
+		<li>maximum size of files created: no limit</li>
+		<li>maximum size that may be locked into memory: 50MB</li>
+		<li>maximum size of resident memory: 50MB</li>
+		<li>maximum number of file descriptors open at one time: 1024</li>
+		<li>maximum size of the stack: 50MB</li>
+		<li>maximum amount of cpu time used: no limit</li>
+		<li>maximum number of processes allowed: 35</li>
+		<li>maximum size of virtual memory available: 100MB</li>
+	</ul>
+	<li>Group <i>limtrst</i></li>
+	<ul>
+		<li>maximum size of core files: 10MB</li>
+		<li>maximum size of a process's data segment: 30MB</li>
+		<li>maximum size of files created: no limit</li>
+		<li>maximum size that may be locked into memory: 30MB</li>
+		<li>maximum size of resident memory: 30MB</li>
+		<li>maximum number of file descriptors open at one time: 512</li>
+		<li>maximum size of the stack: 30MB</li>
+		<li>maximum amount of cpu time used: 600 seconds (10 minutes)</li>
+		<li>maximum number of processes allowed: 25</li>
+		<li>maximum size of virtual memory available: 50MB</li>
+	</ul>
+	<li>Group <i>notrust</i></li>
+	<ul>
+		<li>maximum size of core files: 5MB</li>
+		<li>maximum size of a process's data segment: 15MB</li>
+		<li>maximum size of files created: 50MB</li>
+		<li>maximum size that may be locked into memory: 15MB</li>
+		<li>maximum size of resident memory: 15MB</li>
+		<li>maximum number of file descriptors open at one time: 64</li>
+		<li>maximum size of the stack: 15MB</li>
+		<li>maximum amount of cpu time used: 120 seconds (2 minutes)</li>
+		<li>maximum number of processes allowed: 15</li>
+		<li>maximum size of virtual memory available: 25MB</li>
+	</ul>
+</ul>
+
+<p>To apply the preceeding resource limits, the following would go into the <code>/etc/security/limits.conf</code> file:
+
+</p><pre># limits for group "trusted"
+@trusted	hard	core	10240
+@trusted	hard	memlock 51200
+@trusted	hard	rss	51200
+@trusted	hard	nofile 	1024
+@trusted	hard 	stack	51200
+@trusted	hard	nproc	35
+@trusted	hard	as	102400
+
+# limits for group "limtrst"
+@limtrst	hard	core	10240
+@limtrst	hard	data 	30720
+@limtrst	hard	memlock 30720
+@limtrst	hard	rss	30720
+@limtrst	hard	nofile 	512
+@limtrst	hard 	stack	30720
+@limtrst	hard 	cpu	10
+@limtrst	hard	nproc	25
+@limtrst	hard	as	51200
+
+# limits for group "notrust"
+@notrust	hard	core	5120
+@notrust	hard	data 	15360
+@notrust	hard	fsize	51200
+@notrust	hard	memlock 15360
+@notrust	hard	rss	15360
+@notrust	hard	nofile 	64
+@notrust	hard 	stack	15360
+@notrust	hard 	cpu	2
+@notrust	hard	nproc	15
+@notrust	hard	as	25600
+</pre>
+
+<p>Now we can assign our users to one of those three groups depending
+on what their level of trust is with regards to what they may run on
+the machine that could use resources.</p>
+
+<h2><a name="limitations">Limitations of current implementation</a></h2>
+
+<p>There are some limitations with the current implementation of user resource
+limits.  The largest is that you can only apply resource limits per session.
+ There is no way at the moment to place a quota on the number of resources
+a certain user may use globally on the system.</p>
+
+<p>At the moment, there is also no way to limit what is called from <code>crontab</code> (and possibly the same problem exists for <code>at</code>
+as well).  Crontab enables a user to launch a program at a specific time.
+ There is no way to apply resource limits to these launched programs in crontab's
+present form.</p>
+
+<p>CGI scripts also pose a problem.  I mentioned before that even if you
+disallow shell access but still allow users to run CGI scripts, there is
+the same risk involved that a user could use too many system resources. 
+The best way to limit this is to run all cgi scripts through a program called
+<a href="http://cgiwrap.unixtools.org/">cgiwrap</a>.  You should specifically compile cgiwrap with the <i>--with-rlimit-</i>
+settings to impose resource limits on all CGI scripts.  There does not appear
+to be a way to impose different limits on different user's CGI scripts, however.
+ The configuration of cgiwrap is beyond the scope of this document, but it
+is highly recommended that you look into using it.</p>
+
+<h2><a name="conclusion">Conclusion</a></h2>
+
+<p>It is imperative that you employ some set of resource limits on any Linux
+machines that you administer.  Even if it is just a desktop machine and not
+a server, user system resource limits can go a long way to avoiding crashes
+because of runaway processes.</p>
+
+<hr width="50%" size="1" noshade="noshade">
+
+<p>I have made every effort to explain this subject to the best of my knowledge.
+ However, there may be errors in the document.  If you find one of these
+errors, <a href="http://www.dfdtech.net/about/contact/">please let me know</a>.
+ This information is supplied with NO WARRANTY whatsoever, and any damage
+caused by the precedding information is the responsibilty of the user and
+not myself. </p>
+
+<p>The contents of this document are licenced under the <a href="http://www.gnu.org/copyleft/fdl.html">GNU Free Documentation License Version 1.1</a>.</p>
+
+					&nbsp;<p>
+                                        </p></td>
+                                    </tr>
+                                </tbody></table>
+                            	</td>
+                            </tr>
+			    <tr>
+				<td width="100%" bgcolor="#c0c0c0">
+				<table width="100%" cellspacing="0" cellpadding="3" border="0">
+					<tbody><tr>
+					<td width="25%" bgcolor="#fffaf0">
+					<a href="http://www.dfdtech.net/about/disclaimer/">Site Usage Disclaimer</a>
+					</td>
+					<td width="50%" bgcolor="#fffaf0" align="center">
+					Site content copyright &#169; 1999-2001 by dfdtech.net
+					</td>
+					<td width="25%" bgcolor="#fffaf0" align="right">
+					<a href="http://www.dfdtech.net/print/linux/security/userlimits/">Printer Friendly</a>  
+					</td>
+					</tr>
+				</tbody></table>
+				</td>
+			    </tr>
+                       </tbody></table>
+							</td>
+						</tr>
+                </tbody></table>
+                </td>
+            </tr>
+        </tbody></table>
+        </td>
+    </tr>
+</tbody></table>
+</body></html>

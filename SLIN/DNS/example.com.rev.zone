@@ -1,0 +1,12 @@
+$TTL 86400
+@ IN SOA example.com. root.example.com. (
+42 ; serial
+28800 ; refresh
+14400 ; retry
+3600000 ; expiry
+86400 ; minimum
+)
+ IN NS ns1.
+144 IN PTR client.example.com.
+147 IN PTR server.example.com.
+50 IN PTR mail.example.com.
