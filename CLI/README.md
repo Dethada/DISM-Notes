@@ -11,7 +11,7 @@ Elements:
 
 Case Example: Lim Siong Khee v. PP (2001)
 
-**Section 4 -Unauthorised Access to Computer Material**
+**Section 4 - Access with Intent to Commit or Facilitate Commission of Offence**
 
 Note: offence involving property,fraud,dishonesty or which causes bodily harm
 
