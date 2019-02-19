@@ -28,8 +28,6 @@ logger.error("Error JSP");
 
 ### Java logger
 ```java
-package com.javacodegeeks.corejava.util.logging;
- 
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -108,7 +106,7 @@ import java.util.regex.*;
 public class RegexExample1{  
   public static void main(String args[]){  
   //1st way  
-  Pattern p = Pattern.compile(".s");//. represents single character  
+  Pattern p = Pattern.compile(".s");
   Matcher m = p.matcher("as");  
   boolean b = m.matches();  
     
@@ -212,17 +210,13 @@ String returnMsg = login.login(userName, pass);
 String csrf_token = getToken(session);
 
 int accLevel = login.get_accLevel();
-String userID = login.get_userID();
 if (accLevel == 99) {
-	session.setAttribute("userID", userID);
 	session.setAttribute("userName", userName);
-	session.setAttribute("role", "admin");
 	session.setAttribute("csrf_token", csrf_token);
-	response.sendRedirect("index.jsp");
 } else {
 	session.setAttribute("loginMsg", returnMsg);
-	response.sendRedirect("index.jsp");
 }
+response.sendRedirect("index.jsp");
 %>
 ```
 Form
@@ -283,5 +277,5 @@ String hash = bytesToHex(hashbytes);
 import org.apache.commons.codec.digest.DigestUtils;
 
 String password = "asdsdasd";
-String sha256hex = org.apache.commons.codec.digest.DigestUtils.sha256Hex(password);
+String sha256hex = DigestUtils.sha256Hex(password);
 ```
