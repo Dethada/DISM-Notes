@@ -80,14 +80,13 @@ web.xml
 
 ## SQLi Prevention
 ```java
-Connection conn=DBConnection.getConnection();
+Connection conn = DBConnection.getConnection();
 
 String sqlStr = "Select * from inventory where functions "
         + "like ? order by brand, model";
 
 PreparedStatement pstmt = conn.prepareStatement(sqlStr);
 pstmt.setString(1, "%" + search + "%");
-pstmt.setString(search);
 
 ResultSet rs = pstmt.executeQuery();
 
