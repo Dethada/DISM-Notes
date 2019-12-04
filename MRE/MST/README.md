@@ -125,6 +125,13 @@ To apply the filters shown on this table
 | Process Create | | Processes created |
 | Process Start | Parent PID: `PID` | Processes started by that `PID` |
 
+## WinSCP
+> Incase vmware tools dosen't want to work for some reason.
+
+Run `sshd start` on remnux.
+
+Use WinSCP with `remnux` as username and `malware` as password and `SFTP` as the protocol.
+
 ## Procedure
 1. Start remnux and run `ircd start && fakedns`.
 > httpd start is not required because apache is already started on boot, but you should confirm it yourself.
